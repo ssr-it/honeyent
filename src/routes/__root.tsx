@@ -15,6 +15,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
@@ -141,6 +142,7 @@ function RootComponent() {
             </main>
           </div>
         </div>
+        <Toaster richColors position="top-right" />
       </SidebarProvider>
     </QueryClientProvider>
   );
