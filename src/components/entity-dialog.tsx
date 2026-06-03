@@ -30,7 +30,7 @@ interface Props<T extends Record<string, unknown>> {
   title: string;
   description?: string;
   fields: FieldDef[];
-  initial?: Record<string, unknown> | null;
+  initial?: unknown;
   mode: "create" | "edit";
   onSubmit: (values: T) => void;
   computed?: (values: T) => ReactNode;
@@ -52,8 +52,9 @@ export function EntityDialog<T extends Record<string, unknown>>({
   useEffect(() => {
     if (open) {
       const base: Record<string, unknown> = {};
+      const src = (initial ?? {}) as Record<string, unknown>;
       fields.forEach((f) => {
-        const seed = initial?.[f.name];
+        const seed = src[f.name];
         base[f.name] = seed ?? (f.type === "number" ? 0 : "");
       });
       setValues(base);
