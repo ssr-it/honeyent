@@ -121,7 +121,9 @@ export const useErp = create<State & Actions>()(
     {
       name: "honey-erp-v1",
       storage: createJSONStorage(() =>
-        typeof window !== "undefined" ? window.localStorage : (noopStorage as Storage),
+        typeof window !== "undefined"
+          ? window.localStorage
+          : (noopStorage as unknown as Storage),
       ),
       version: 1,
     },
