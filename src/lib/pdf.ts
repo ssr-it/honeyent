@@ -175,15 +175,13 @@ export function generateDocPdf(opts: InvoicePdfOptions): void {
     doc.text(`Remark: ${opts.remark}`, 40, y + 10);
   }
 
+  const pageH = doc.internal.pageSize.getHeight();
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
-  doc.text(
-    "This is a computer-generated document. Subject to local jurisdiction.",
-    pageW / 2,
-    doc.internal.pageSize.getHeight() - 20,
-    { align: "center" },
-  );
+  doc.text(`Bank: ${c.bank}   •   UPI: ${c.upi}`, 40, pageH - 38);
+  doc.text(`${c.address}   •   ${c.phone}   •   ${c.email}`, 40, pageH - 26);
+  doc.text("Computer-generated document. E.&O.E. Subject to local jurisdiction.", pageW / 2, pageH - 14, { align: "center" });
 
   doc.save(opts.filename);
 }
