@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { inr } from "@/lib/mock-data";
 import { useErp, newId, active, type CCustomer } from "@/lib/store";
 import { EntityDialog, CancelDialog, type FieldDef } from "@/components/entity-dialog";
+import { checkCustomer } from "@/lib/dedupe";
 import { generatePdf } from "@/lib/pdf";
 
 export const Route = createFileRoute("/customers")({
@@ -50,6 +51,8 @@ function CustomersPage() {
   });
 
   function handleSubmit(v: Record<string, unknown>) {
+    const err = checkCustomer(String(v.name), String(v.gst || ""), String(v.mobile), { excludeId: editing?.id });
+    if (err) { toast.error(err); return; }
     if (editing) {
       update("customers", editing.id, v as Partial<CCustomer>);
       toast.success(`${editing.name} updated`);
