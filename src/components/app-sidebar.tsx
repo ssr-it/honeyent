@@ -14,6 +14,7 @@ import {
   Receipt,
   BarChart3,
   Mountain,
+  Settings,
 } from "lucide-react";
 
 import {
@@ -58,6 +59,12 @@ const sections = [
       { title: "Sales", url: "/sales", icon: FileText },
       { title: "Purchases", url: "/purchases", icon: Receipt },
       { title: "Reports", url: "/reports", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Setup",
+    items: [
+      { title: "Settings", url: "/settings", icon: Settings },
     ],
   },
 ];
