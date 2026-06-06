@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Filter, Download, Pencil, Ban, FileDown } from "lucide-react";
+import { Plus, Filter, Download, Pencil, Ban, FileDown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
@@ -13,6 +13,8 @@ import { inr, statusTone, type OrderStatus } from "@/lib/mock-data";
 import { useErp, newId, active, type COrder } from "@/lib/store";
 import { EntityDialog, CancelDialog, type FieldDef } from "@/components/entity-dialog";
 import { generateDocPdf, generatePdf } from "@/lib/pdf";
+import { OneShotOrderDialog } from "@/components/one-shot-order";
+import { nextNo } from "@/lib/numbering";
 
 export const Route = createFileRoute("/orders")({
   head: () => ({ meta: [{ title: "Orders — Honey Enterprises ERP" }] }),
