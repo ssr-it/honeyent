@@ -22,6 +22,7 @@ import { Route as DriversRouteImport } from './routes/drivers'
 import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as DealsRouteImport } from './routes/deals'
 import { Route as CustomersRouteImport } from './routes/customers'
+import { Route as CashbookRouteImport } from './routes/cashbook'
 import { Route as IndexRouteImport } from './routes/index'
 
 const WeighbridgeRoute = WeighbridgeRouteImport.update({
@@ -89,6 +90,11 @@ const CustomersRoute = CustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CashbookRoute = CashbookRouteImport.update({
+  id: '/cashbook',
+  path: '/cashbook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -97,6 +103,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cashbook': typeof CashbookRoute
   '/customers': typeof CustomersRoute
   '/deals': typeof DealsRoute
   '/dispatch': typeof DispatchRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cashbook': typeof CashbookRoute
   '/customers': typeof CustomersRoute
   '/deals': typeof DealsRoute
   '/dispatch': typeof DispatchRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cashbook': typeof CashbookRoute
   '/customers': typeof CustomersRoute
   '/deals': typeof DealsRoute
   '/dispatch': typeof DispatchRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/cashbook'
     | '/customers'
     | '/deals'
     | '/dispatch'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/cashbook'
     | '/customers'
     | '/deals'
     | '/dispatch'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/cashbook'
     | '/customers'
     | '/deals'
     | '/dispatch'
@@ -197,6 +209,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CashbookRoute: typeof CashbookRoute
   CustomersRoute: typeof CustomersRoute
   DealsRoute: typeof DealsRoute
   DispatchRoute: typeof DispatchRoute
@@ -305,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cashbook': {
+      id: '/cashbook'
+      path: '/cashbook'
+      fullPath: '/cashbook'
+      preLoaderRoute: typeof CashbookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -317,6 +337,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CashbookRoute: CashbookRoute,
   CustomersRoute: CustomersRoute,
   DealsRoute: DealsRoute,
   DispatchRoute: DispatchRoute,
@@ -334,3 +355,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
