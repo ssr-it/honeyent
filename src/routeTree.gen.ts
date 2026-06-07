@@ -17,6 +17,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as LedgerRouteImport } from './routes/ledger'
 import { Route as DriversRouteImport } from './routes/drivers'
 import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as DealsRouteImport } from './routes/deals'
@@ -63,6 +64,11 @@ const OrdersRoute = OrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LedgerRoute = LedgerRouteImport.update({
+  id: '/ledger',
+  path: '/ledger',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DriversRoute = DriversRouteImport.update({
   id: '/drivers',
   path: '/drivers',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/deals': typeof DealsRoute
   '/dispatch': typeof DispatchRoute
   '/drivers': typeof DriversRoute
+  '/ledger': typeof LedgerRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/deals': typeof DealsRoute
   '/dispatch': typeof DispatchRoute
   '/drivers': typeof DriversRoute
+  '/ledger': typeof LedgerRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/deals': typeof DealsRoute
   '/dispatch': typeof DispatchRoute
   '/drivers': typeof DriversRoute
+  '/ledger': typeof LedgerRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/dispatch'
     | '/drivers'
+    | '/ledger'
     | '/orders'
     | '/products'
     | '/reports'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/dispatch'
     | '/drivers'
+    | '/ledger'
     | '/orders'
     | '/products'
     | '/reports'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/dispatch'
     | '/drivers'
+    | '/ledger'
     | '/orders'
     | '/products'
     | '/reports'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   DealsRoute: typeof DealsRoute
   DispatchRoute: typeof DispatchRoute
   DriversRoute: typeof DriversRoute
+  LedgerRoute: typeof LedgerRoute
   OrdersRoute: typeof OrdersRoute
   ProductsRoute: typeof ProductsRoute
   ReportsRoute: typeof ReportsRoute
@@ -257,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ledger': {
+      id: '/ledger'
+      path: '/ledger'
+      fullPath: '/ledger'
+      preLoaderRoute: typeof LedgerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/drivers': {
       id: '/drivers'
       path: '/drivers'
@@ -301,6 +321,7 @@ const rootRouteChildren: RootRouteChildren = {
   DealsRoute: DealsRoute,
   DispatchRoute: DispatchRoute,
   DriversRoute: DriversRoute,
+  LedgerRoute: LedgerRoute,
   OrdersRoute: OrdersRoute,
   ProductsRoute: ProductsRoute,
   ReportsRoute: ReportsRoute,
