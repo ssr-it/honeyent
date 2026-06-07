@@ -112,25 +112,25 @@ export const useErp = create<State & Actions>()(
     (set) => ({
       ...initial,
       add: (key, item) =>
-        set((s) => ({ [key]: [item, ...(s[key] as unknown[])] } as Partial<State>)),
+        set((s) => ({ [key]: [item, ...((s as unknown as Record<EntityKey, unknown[]>)[key])] } as unknown as Partial<State>)),
       update: (key, id, patch) =>
         set((s) => ({
-          [key]: (s[key] as Array<{ id: string }>).map((it) =>
+          [key]: ((s as unknown as Record<EntityKey, Array<{ id: string }>>)[key]).map((it) =>
             it.id === id ? { ...it, ...patch } : it,
           ),
-        } as Partial<State>)),
+        } as unknown as Partial<State>)),
       cancel: (key, id, remark) =>
         set((s) => ({
-          [key]: (s[key] as Array<{ id: string } & Cancelable>).map((it) =>
+          [key]: ((s as unknown as Record<EntityKey, Array<{ id: string } & Cancelable>>)[key]).map((it) =>
             it.id === id
               ? { ...it, cancelled: true, cancelRemark: remark, cancelledAt: new Date().toISOString() }
               : it,
           ),
-        } as Partial<State>)),
+        } as unknown as Partial<State>)),
       remove: (key, id) =>
         set((s) => ({
-          [key]: (s[key] as Array<{ id: string }>).filter((it) => it.id !== id),
-        } as Partial<State>)),
+          [key]: ((s as unknown as Record<EntityKey, Array<{ id: string }>>)[key]).filter((it) => it.id !== id),
+        } as unknown as Partial<State>)),
       resetAll: () => set(initial),
     }),
     {
