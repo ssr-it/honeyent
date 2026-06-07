@@ -10,11 +10,12 @@ import {
   Package,
   Bus,
   IdCard,
-  FileText,
-  Receipt,
   BarChart3,
   Mountain,
   Settings,
+  Layers,
+  BookOpen,
+  Wallet,
 } from "lucide-react";
 
 import {
@@ -32,7 +33,10 @@ import {
 const sections = [
   {
     label: "Overview",
-    items: [{ title: "Dashboard", url: "/", icon: LayoutDashboard }],
+    items: [
+      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+      { title: "Deals", url: "/deals", icon: Layers },
+    ],
   },
   {
     label: "Operations",
@@ -56,8 +60,8 @@ const sections = [
   {
     label: "Finance",
     items: [
-      { title: "Sales", url: "/sales", icon: FileText },
-      { title: "Purchases", url: "/purchases", icon: Receipt },
+      { title: "Ledger 360°", url: "/ledger", icon: BookOpen },
+      { title: "Cashbook", url: "/cashbook", icon: Wallet },
       { title: "Reports", url: "/reports", icon: BarChart3 },
     ],
   },
