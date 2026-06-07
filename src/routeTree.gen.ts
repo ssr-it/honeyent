@@ -14,9 +14,7 @@ import { Route as VehiclesRouteImport } from './routes/vehicles'
 import { Route as TripsRouteImport } from './routes/trips'
 import { Route as SuppliersRouteImport } from './routes/suppliers'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SalesRouteImport } from './routes/sales'
 import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as PurchasesRouteImport } from './routes/purchases'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as DriversRouteImport } from './routes/drivers'
@@ -49,19 +47,9 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SalesRoute = SalesRouteImport.update({
-  id: '/sales',
-  path: '/sales',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PurchasesRoute = PurchasesRouteImport.update({
-  id: '/purchases',
-  path: '/purchases',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsRoute = ProductsRouteImport.update({
@@ -102,9 +90,7 @@ export interface FileRoutesByFullPath {
   '/drivers': typeof DriversRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
-  '/purchases': typeof PurchasesRoute
   '/reports': typeof ReportsRoute
-  '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/suppliers': typeof SuppliersRoute
   '/trips': typeof TripsRoute
@@ -118,9 +104,7 @@ export interface FileRoutesByTo {
   '/drivers': typeof DriversRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
-  '/purchases': typeof PurchasesRoute
   '/reports': typeof ReportsRoute
-  '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/suppliers': typeof SuppliersRoute
   '/trips': typeof TripsRoute
@@ -135,9 +119,7 @@ export interface FileRoutesById {
   '/drivers': typeof DriversRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
-  '/purchases': typeof PurchasesRoute
   '/reports': typeof ReportsRoute
-  '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/suppliers': typeof SuppliersRoute
   '/trips': typeof TripsRoute
@@ -153,9 +135,7 @@ export interface FileRouteTypes {
     | '/drivers'
     | '/orders'
     | '/products'
-    | '/purchases'
     | '/reports'
-    | '/sales'
     | '/settings'
     | '/suppliers'
     | '/trips'
@@ -169,9 +149,7 @@ export interface FileRouteTypes {
     | '/drivers'
     | '/orders'
     | '/products'
-    | '/purchases'
     | '/reports'
-    | '/sales'
     | '/settings'
     | '/suppliers'
     | '/trips'
@@ -185,9 +163,7 @@ export interface FileRouteTypes {
     | '/drivers'
     | '/orders'
     | '/products'
-    | '/purchases'
     | '/reports'
-    | '/sales'
     | '/settings'
     | '/suppliers'
     | '/trips'
@@ -202,9 +178,7 @@ export interface RootRouteChildren {
   DriversRoute: typeof DriversRoute
   OrdersRoute: typeof OrdersRoute
   ProductsRoute: typeof ProductsRoute
-  PurchasesRoute: typeof PurchasesRoute
   ReportsRoute: typeof ReportsRoute
-  SalesRoute: typeof SalesRoute
   SettingsRoute: typeof SettingsRoute
   SuppliersRoute: typeof SuppliersRoute
   TripsRoute: typeof TripsRoute
@@ -249,25 +223,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sales': {
-      id: '/sales'
-      path: '/sales'
-      fullPath: '/sales'
-      preLoaderRoute: typeof SalesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reports': {
       id: '/reports'
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/purchases': {
-      id: '/purchases'
-      path: '/purchases'
-      fullPath: '/purchases'
-      preLoaderRoute: typeof PurchasesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products': {
@@ -322,9 +282,7 @@ const rootRouteChildren: RootRouteChildren = {
   DriversRoute: DriversRoute,
   OrdersRoute: OrdersRoute,
   ProductsRoute: ProductsRoute,
-  PurchasesRoute: PurchasesRoute,
   ReportsRoute: ReportsRoute,
-  SalesRoute: SalesRoute,
   SettingsRoute: SettingsRoute,
   SuppliersRoute: SuppliersRoute,
   TripsRoute: TripsRoute,
