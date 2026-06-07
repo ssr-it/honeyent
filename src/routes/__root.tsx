@@ -6,16 +6,17 @@ import {
   Scripts,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
-import { Bell, Search } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Bell, Command, Sparkles } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { CommandPalette } from "@/components/command-palette";
+import { OneShotOrderDialog } from "@/components/one-shot-order";
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
