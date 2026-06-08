@@ -366,8 +366,15 @@ function ReportsPage() {
     <div>
       <PageHeader
         title="Reports"
-        description="Click any report to view on screen, then download PDF or share via WhatsApp / Email. Cancelled documents are excluded."
+        description="Pick a date range, click any report to view, then download PDF or share via WhatsApp / Email."
       />
+      <div className="flex flex-wrap items-center gap-3 px-6 pt-6">
+        <DateRangeFilter value={range} onChange={setRange} />
+        <span className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-1 text-[11px] text-muted-foreground">
+          <CalendarDays className="h-3 w-3" />
+          {range.from || range.to ? `${range.from || "…"} → ${range.to || "…"}` : "All dates"} — applies to every report
+        </span>
+      </div>
       <div className="grid gap-4 p-6 md:grid-cols-2 lg:grid-cols-3">
         {groups.map((r) => (
           <div key={r.group} className="rounded-xl border border-border bg-card p-5 shadow-sm">
