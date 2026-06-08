@@ -18,6 +18,7 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as LedgerRouteImport } from './routes/ledger'
+import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as DriversRouteImport } from './routes/drivers'
 import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as DealsRouteImport } from './routes/deals'
@@ -70,6 +71,11 @@ const LedgerRoute = LedgerRouteImport.update({
   path: '/ledger',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExpensesRoute = ExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DriversRoute = DriversRouteImport.update({
   id: '/drivers',
   path: '/drivers',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/deals': typeof DealsRoute
   '/dispatch': typeof DispatchRoute
   '/drivers': typeof DriversRoute
+  '/expenses': typeof ExpensesRoute
   '/ledger': typeof LedgerRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/deals': typeof DealsRoute
   '/dispatch': typeof DispatchRoute
   '/drivers': typeof DriversRoute
+  '/expenses': typeof ExpensesRoute
   '/ledger': typeof LedgerRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/deals': typeof DealsRoute
   '/dispatch': typeof DispatchRoute
   '/drivers': typeof DriversRoute
+  '/expenses': typeof ExpensesRoute
   '/ledger': typeof LedgerRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/dispatch'
     | '/drivers'
+    | '/expenses'
     | '/ledger'
     | '/orders'
     | '/products'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/dispatch'
     | '/drivers'
+    | '/expenses'
     | '/ledger'
     | '/orders'
     | '/products'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/dispatch'
     | '/drivers'
+    | '/expenses'
     | '/ledger'
     | '/orders'
     | '/products'
@@ -214,6 +226,7 @@ export interface RootRouteChildren {
   DealsRoute: typeof DealsRoute
   DispatchRoute: typeof DispatchRoute
   DriversRoute: typeof DriversRoute
+  ExpensesRoute: typeof ExpensesRoute
   LedgerRoute: typeof LedgerRoute
   OrdersRoute: typeof OrdersRoute
   ProductsRoute: typeof ProductsRoute
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LedgerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/expenses': {
+      id: '/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof ExpensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/drivers': {
       id: '/drivers'
       path: '/drivers'
@@ -342,6 +362,7 @@ const rootRouteChildren: RootRouteChildren = {
   DealsRoute: DealsRoute,
   DispatchRoute: DispatchRoute,
   DriversRoute: DriversRoute,
+  ExpensesRoute: ExpensesRoute,
   LedgerRoute: LedgerRoute,
   OrdersRoute: OrdersRoute,
   ProductsRoute: ProductsRoute,
@@ -355,13 +376,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
