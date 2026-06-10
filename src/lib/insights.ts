@@ -295,7 +295,7 @@ export function businessInsights(args: {
   if (dRanked.length) insights.push({ label: "Most productive driver", value: dRanked[0][0], sub: `${dRanked[0][1]} MT moved`, tone: "good" });
 
   // Fast/slow paying — by collected/invoiced ratio
-  const ratios: Array<[string, number]> = args.customers.map((c) => {
+  const ratios: Array<[string, number]> = args.customers.map((c): [string, number] => {
     const inv = args.invoices.filter((i) => i.party === c.name).reduce((a, i) => a + i.amount, 0);
     const pay = args.payments.filter((p) => p.party === c.name && p.direction === "In").reduce((a, p) => a + p.amount, 0);
     return [c.name, inv ? pay / inv : 0];
