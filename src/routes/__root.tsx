@@ -66,6 +66,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Honey Enterprises ERP" },
       { name: "description", content: "Stone crusher, aggregate trading and transport ERP for Honey Enterprises." },
       { name: "theme-color", content: "#0f172a" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Honey ERP" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { property: "og:title", content: "Honey Enterprises ERP" },
       { name: "twitter:title", content: "Honey Enterprises ERP" },
       { property: "og:description", content: "Stone crusher, aggregate trading and transport ERP for Honey Enterprises." },
@@ -77,6 +81,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", href: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { rel: "icon", href: "/icon-512.png", type: "image/png", sizes: "512x512" },
+      { rel: "apple-touch-icon", href: "/icon-192.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

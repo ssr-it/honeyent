@@ -3,9 +3,10 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, MessageCircle, Mail } from "lucide-react";
+import { Download, MessageCircle, Mail, FileSpreadsheet, FileText } from "lucide-react";
 import { generatePdf } from "@/lib/pdf";
 import { shareWhatsApp, shareEmail } from "@/lib/share";
+import { exportCsv, exportExcel } from "@/lib/export";
 
 export interface ReportData {
   title: string;
@@ -101,7 +102,13 @@ export function ReportView({ open, onOpenChange, report }: Props) {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={wa}><MessageCircle className="mr-1 h-4 w-4" />WhatsApp</Button>
             <Button variant="outline" onClick={mail}><Mail className="mr-1 h-4 w-4" />Email</Button>
-            <Button onClick={pdf}><Download className="mr-1 h-4 w-4" />Download PDF</Button>
+            <Button variant="outline" onClick={() => exportCsv(report!.title, report!.head, report!.body)}>
+              <FileText className="mr-1 h-4 w-4" />CSV
+            </Button>
+            <Button variant="outline" onClick={() => exportExcel(report!.title, report!.head, report!.body, report!.totals)}>
+              <FileSpreadsheet className="mr-1 h-4 w-4" />Excel
+            </Button>
+            <Button onClick={pdf}><Download className="mr-1 h-4 w-4" />PDF</Button>
           </div>
         </DialogFooter>
       </DialogContent>
