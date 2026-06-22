@@ -1,14 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Scale, Save, Pencil, Ban, FileDown, Download } from "lucide-react";
+import { Save, Pencil, Ban, FileDown, Download } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
 import { ListShell } from "@/components/list-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useErp, newId, active, type CWeighSlip } from "@/lib/store";
 import { EntityDialog, CancelDialog, type FieldDef } from "@/components/entity-dialog";
@@ -27,13 +25,6 @@ function WeighbridgePage() {
   const update = useErp((s) => s.update);
   const cancel = useErp((s) => s.cancel);
 
-  const [vehicle, setVehicle] = useState(vehicles[0]?.number ?? "");
-  const [product, setProduct] = useState(products[0]?.name ?? "");
-  const [gross, setGross] = useState<number>(0);
-  const [tare, setTare] = useState<number>(0);
-  const [custWt, setCustWt] = useState<number>(0);
-  const net = Math.max(gross - tare, 0);
-
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CWeighSlip | null>(null);
   const [cancelTarget, setCancelTarget] = useState<CWeighSlip | null>(null);
@@ -41,31 +32,19 @@ function WeighbridgePage() {
   const fields: FieldDef[] = [
     { name: "slipNo", label: "Slip No", required: true, half: true },
     { name: "date", label: "Date", type: "date", required: true, half: true },
-    { name: "vehicle", label: "Vehicle", type: "select", required: true, half: true,
-      options: active(vehicles).map((v) => ({ label: v.number, value: v.number })) },
-    { name: "product", label: "Product", type: "select", required: true, half: true,
-      options: active(products).map((p) => ({ label: p.name, value: p.name })) },
+    {
+      name: "vehicle", label: "Vehicle", type: "select", required: true, half: true,
+      options: active(vehicles).map((v) => ({ label: v.number, value: v.number }))
+    },
+    {
+      name: "product", label: "Product", type: "select", required: true, half: true,
+      options: active(products).map((p) => ({ label: p.name, value: p.name }))
+    },
     { name: "gross", label: "Gross (kg)", type: "number", required: true, half: true },
     { name: "tare", label: "Tare (kg)", type: "number", required: true, half: true },
     { name: "net", label: "Net (kg)", type: "number", required: true, half: true },
     { name: "customerWeight", label: "Customer Wt (kg)", type: "number", half: true },
   ];
-
-  function quickSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!gross || !tare) { toast.error("Enter gross and tare weights"); return; }
-    const item: CWeighSlip = {
-      id: newId("w"),
-      slipNo: `WB-${String(slips.length + 1245).padStart(6, "0")}`,
-      date: new Date().toISOString().slice(0, 10),
-      vehicle, product, gross, tare, net,
-      customerWeight: custWt || undefined,
-      loss: custWt ? Math.max(net - custWt, 0) : undefined,
-    };
-    add("weighSlips", item);
-    toast.success(`Slip ${item.slipNo} saved`, { description: `Net ${net.toLocaleString("en-IN")} kg` });
-    setGross(0); setTare(0); setCustWt(0);
-  }
 
   function handleDialogSubmit(v: Record<string, unknown>) {
     const patch: Partial<CWeighSlip> = {
@@ -76,7 +55,7 @@ function WeighbridgePage() {
       customerWeight: v.customerWeight ? Number(v.customerWeight) : undefined,
     };
     if (patch.customerWeight && patch.net) patch.loss = Math.max(patch.net - patch.customerWeight, 0);
-    if (editing) { update("weighSlips", editing.id, patch); toast.success(`Slip ${editing.slipNo} updated`); }
+    if (editing) { update("weighSlips", String(editing.id), patch); toast.success(`Slip ${editing.slipNo} updated`); }
     else { add("weighSlips", { id: newId("w"), ...patch } as CWeighSlip); toast.success("Slip created"); }
     setEditing(null);
   }
@@ -112,7 +91,7 @@ function WeighbridgePage() {
     });
   }
 
-  const visible = slips;
+  const visible = active(slips);
 
   return (
     <div>
@@ -121,54 +100,10 @@ function WeighbridgePage() {
         actions={
           <>
             <Button variant="outline" size="sm" onClick={exportPdf}><Download className="mr-1 h-4 w-4" />Export PDF</Button>
-            <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}><Scale className="mr-1 h-4 w-4" />New slip</Button>
           </>
         } />
 
-      <div className="grid gap-6 p-6 lg:grid-cols-[420px_1fr]">
-        <form onSubmit={quickSave} className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h2 className="font-display text-base font-semibold">Quick slip</h2>
-          <p className="text-xs text-muted-foreground">Auto numbered. Saves instantly to register.</p>
-          <div className="mt-4 grid gap-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="qsv">Vehicle</Label>
-                <select id="qsv" value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                  {active(vehicles).map((v) => <option key={v.id}>{v.number}</option>)}
-                </select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="qsp">Product</Label>
-                <select id="qsp" value={product} onChange={(e) => setProduct(e.target.value)} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                  {active(products).map((p) => <option key={p.id}>{p.name}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="g">Gross (kg)</Label>
-                <Input id="g" type="number" value={gross || ""} onChange={(e) => setGross(Number(e.target.value))} className="bg-background tabular-nums" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="t">Tare (kg)</Label>
-                <Input id="t" type="number" value={tare || ""} onChange={(e) => setTare(Number(e.target.value))} className="bg-background tabular-nums" />
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="cw">Customer weight (optional)</Label>
-              <Input id="cw" type="number" value={custWt || ""} onChange={(e) => setCustWt(Number(e.target.value))} className="bg-background tabular-nums" />
-            </div>
-            <div className="rounded-lg border border-primary/40 bg-primary/10 p-3">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Net weight</p>
-              <p className="font-display text-3xl font-semibold tabular-nums text-primary">{net.toLocaleString("en-IN")} kg</p>
-            </div>
-            <div className="flex gap-2 pt-1">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => { setGross(0); setTare(0); setCustWt(0); }}>Reset</Button>
-              <Button type="submit" className="flex-1"><Save className="mr-1 h-4 w-4" />Save slip</Button>
-            </div>
-          </div>
-        </form>
-
+      <div className="p-6">
         <ListShell toolbar={<p className="text-sm font-medium">Recent slips ({active(slips).length} active)</p>}>
           <Table>
             <TableHeader>
@@ -211,7 +146,7 @@ function WeighbridgePage() {
         onSubmit={handleDialogSubmit} />
       <CancelDialog open={!!cancelTarget} onOpenChange={(v) => !v && setCancelTarget(null)}
         title={cancelTarget ? `Cancel ${cancelTarget.slipNo}` : "Cancel"}
-        onConfirm={(remark) => { if (cancelTarget) { cancel("weighSlips", cancelTarget.id, remark); toast.warning(`${cancelTarget.slipNo} cancelled`, { description: remark }); } }} />
+        onConfirm={(remark) => { if (cancelTarget) { cancel("weighSlips", String(cancelTarget.id), remark); toast.warning(`${cancelTarget.slipNo} cancelled`, { description: remark }); } }} />
     </div>
   );
 }

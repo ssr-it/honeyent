@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Filter, Download, Pencil, Ban, FileDown, Sparkles } from "lucide-react";
+import { Filter, Download, Pencil, Ban, FileDown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
@@ -10,12 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { inr, statusTone, type OrderStatus } from "@/lib/mock-data";
-import { useErp, newId, active, type COrder } from "@/lib/store";
+import { useErp, active, type COrder, loadBackendData } from "@/lib/store";
 import { EntityDialog, CancelDialog, type FieldDef } from "@/components/entity-dialog";
 import { generateDocPdf, generatePdf } from "@/lib/pdf";
-import { OneShotOrderDialog } from "@/components/one-shot-order";
-import { nextNo } from "@/lib/numbering";
 import { DateRangeFilter, EMPTY_RANGE, inRange, type DateRange } from "@/components/date-range-filter";
+import { createOrder, updateOrder, deleteOrder } from "@/lib/api/clients";
 
 export const Route = createFileRoute("/orders")({
   head: () => ({ meta: [{ title: "Orders — Honey Enterprises ERP" }] }),
@@ -27,38 +26,51 @@ const STATUSES: OrderStatus[] = ["Pending", "Approved", "Loaded", "In Transit", 
 function OrdersPage() {
   const orders = useErp((s) => s.orders);
   const customers = useErp((s) => s.customers);
+  const suppliers = useErp((s) => s.suppliers);
   const products = useErp((s) => s.products);
   const vehicles = useErp((s) => s.vehicles);
   const drivers = useErp((s) => s.drivers);
-  const add = useErp((s) => s.add);
-  const update = useErp((s) => s.update);
-  const cancel = useErp((s) => s.cancel);
 
   const [query, setQuery] = useState("");
   const [showActive, setShowActive] = useState(true);
   const [range, setRange] = useState<DateRange>(EMPTY_RANGE);
   const [open, setOpen] = useState(false);
-  const [oneShot, setOneShot] = useState(false);
   const [editing, setEditing] = useState<COrder | null>(null);
   const [cancelTarget, setCancelTarget] = useState<COrder | null>(null);
-
-  const autoOrderNo = editing ? editing.no : nextNo("ORD");
+  const [loading, setLoading] = useState(false);
 
   const fields: FieldDef[] = [
-    { name: "no", label: "Order No (auto)", required: true, half: true, placeholder: autoOrderNo },
     { name: "date", label: "Date", type: "date", required: true, half: true },
-    { name: "customer", label: "Customer", type: "select", required: true,
-      options: active(customers).map((c) => ({ label: c.name, value: c.name })) },
-    { name: "product", label: "Product", type: "select", required: true, half: true,
-      options: active(products).map((p) => ({ label: p.name, value: p.name })) },
+    {
+      name: "customer", label: "Customer", type: "select", required: true,
+      options: active(customers).map((c) => ({ label: c.name, value: c.name }))
+    },
+    {
+      name: "supplier", label: "Supplier", type: "select", half: true,
+      options: active(suppliers).map((s) => ({ label: s.name, value: s.name }))
+    },
+    {
+      name: "product", label: "Product", type: "select", required: true, half: true,
+      options: active(products).map((p) => ({ label: p.name, value: p.name }))
+    },
     { name: "qty", label: "Qty (MT)", type: "number", required: true, half: true },
     { name: "rate", label: "Rate / MT", type: "number", required: true, half: true },
-    { name: "vehicle", label: "Vehicle", type: "select", required: true, half: true,
-      options: active(vehicles).map((v) => ({ label: v.number, value: v.number })) },
-    { name: "driver", label: "Driver", type: "select", half: true,
-      options: active(drivers).map((d) => ({ label: d.name, value: d.name })) },
-    { name: "status", label: "Status", type: "select", required: true, half: true,
-      options: STATUSES.map((s) => ({ label: s, value: s })) },
+    {
+      name: "vehicle", label: "Vehicle", type: "select", required: true, half: true,
+      options: active(vehicles).map((v) => ({ label: v.number, value: v.number }))
+    },
+    {
+      name: "driver", label: "Driver", type: "select", half: true,
+      options: active(drivers).map((d) => ({ label: d.name, value: d.name }))
+    },
+    { name: "freight", label: "Freight Amount", type: "number", half: true },
+    { name: "paymentTerms", label: "Payment Terms", type: "text", half: true },
+    { name: "expectedDelivery", label: "Expected Delivery", type: "date", half: true },
+    { name: "remarks", label: "Remarks", type: "textarea", half: true },
+    {
+      name: "status", label: "Status", type: "select", required: true, half: true,
+      options: STATUSES.map((s) => ({ label: s, value: s }))
+    },
   ];
 
   const visible = orders.filter((o) => {
@@ -69,27 +81,40 @@ function OrdersPage() {
     return o.no.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q) || o.vehicle.toLowerCase().includes(q);
   });
 
-  function handleSubmit(v: Record<string, unknown>) {
-    if (editing) {
-      update("orders", editing.id, { ...(v as Partial<COrder>) });
-      toast.success(`Order ${editing.no} updated`);
-    } else {
-      const item: COrder = {
-        id: newId("o"),
-        no: String(v.no || autoOrderNo),
+  async function handleSubmit(v: Record<string, unknown>) {
+    setLoading(true);
+    try {
+      const data = {
         date: String(v.date),
         customer: String(v.customer),
+        supplier: String(v.supplier || ""),
         product: String(v.product),
         qty: Number(v.qty),
         rate: Number(v.rate),
         vehicle: String(v.vehicle),
-        driver: String(v.driver || "—"),
+        driver: String(v.driver || ""),
+        freight: Number(v.freight || 0),
+        paymentTerms: String(v.paymentTerms || ""),
+        expectedDelivery: String(v.expectedDelivery || ""),
+        remarks: String(v.remarks || ""),
         status: (v.status as OrderStatus) || "Pending",
       };
-      add("orders", item);
-      toast.success(`Order ${item.no} created`);
+
+      if (editing) {
+        await updateOrder(String(editing.id), data);
+        toast.success(`Order ${editing.no} updated`);
+      } else {
+        const order = await createOrder(data);
+        toast.success(`Order ${order.no} created`);
+      }
+
+      await loadBackendData();
+      setEditing(null);
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setLoading(false);
     }
-    setEditing(null);
   }
 
   function exportPdf() {
@@ -141,8 +166,6 @@ function OrdersPage() {
         actions={
           <>
             <Button variant="outline" size="sm" onClick={exportPdf}><Download className="mr-1 h-4 w-4" />Export PDF</Button>
-            <Button variant="outline" size="sm" onClick={() => { setEditing(null); setOpen(true); }}><Plus className="mr-1 h-4 w-4" />Manual</Button>
-            <Button size="sm" onClick={() => setOneShot(true)}><Sparkles className="mr-1 h-4 w-4" />One-Shot Order</Button>
           </>
         }
       />
@@ -194,8 +217,16 @@ function OrdersPage() {
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <Button variant="ghost" size="sm" onClick={() => downloadOrder(o)}><FileDown className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="sm" disabled={o.cancelled} onClick={() => { setEditing(o); setOpen(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="sm" disabled={o.cancelled} onClick={() => setCancelTarget(o)}><Ban className="h-3.5 w-3.5 text-destructive" /></Button>
+                    {(() => {
+                      const FINAL = ["Delivered", "Billed", "Closed"];
+                      const isFinal = FINAL.includes(o.status);
+                      return (
+                        <>
+                          <Button variant="ghost" size="sm" disabled={o.cancelled || isFinal} onClick={() => { setEditing(o); setOpen(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="sm" disabled={o.cancelled} onClick={() => setCancelTarget(o)}><Ban className="h-3.5 w-3.5 text-destructive" /></Button>
+                        </>
+                      );
+                    })()}
                   </TableCell>
                 </TableRow>
               ))}
@@ -209,24 +240,33 @@ function OrdersPage() {
         onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         title="Order"
         fields={fields}
-        mode={editing ? "edit" : "create"}
+        mode="edit"
         initial={editing ?? { date: new Date().toISOString().slice(0, 10), status: "Pending" }}
         onSubmit={handleSubmit}
+        disabled={loading}
       />
 
       <CancelDialog
         open={!!cancelTarget}
         onOpenChange={(v) => !v && setCancelTarget(null)}
         title={cancelTarget ? `Cancel ${cancelTarget.no}` : "Cancel"}
-        onConfirm={(remark) => {
+        onConfirm={async (remark) => {
           if (cancelTarget) {
-            cancel("orders", cancelTarget.id, remark);
-            toast.warning(`Order ${cancelTarget.no} cancelled`, { description: remark });
+            setLoading(true);
+            try {
+              await deleteOrder(String(cancelTarget.id));
+              toast.warning(`Order ${cancelTarget.no} cancelled`, { description: remark });
+              await loadBackendData();
+            } catch (err) {
+              toast.error(String(err));
+            } finally {
+              setLoading(false);
+              setCancelTarget(null);
+            }
           }
         }}
       />
 
-      <OneShotOrderDialog open={oneShot} onOpenChange={setOneShot} />
     </div>
   );
 }

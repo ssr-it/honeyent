@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Pencil, Ban, FileDown, Download, IndianRupee, Route as RouteIcon, TrendingUp } from "lucide-react";
+import { Pencil, Ban, FileDown, Download, IndianRupee, Route as RouteIcon, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { inr } from "@/lib/mock-data";
-import { useErp, newId, active, type CTrip } from "@/lib/store";
+import { useErp, active, type CTrip, loadBackendData } from "@/lib/store";
 import { EntityDialog, CancelDialog, type FieldDef } from "@/components/entity-dialog";
 import { generateDocPdf, generatePdf } from "@/lib/pdf";
+import { createTrip, updateTrip, deleteTrip } from "@/lib/api/clients";
 
 export const Route = createFileRoute("/trips")({
   head: () => ({ meta: [{ title: "Trips — Honey Enterprises ERP" }] }),
@@ -23,42 +24,62 @@ function TripsPage() {
   const trips = useErp((s) => s.trips);
   const vehicles = useErp((s) => s.vehicles);
   const drivers = useErp((s) => s.drivers);
-  const add = useErp((s) => s.add);
-  const update = useErp((s) => s.update);
-  const cancel = useErp((s) => s.cancel);
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CTrip | null>(null);
   const [cancelTarget, setCancelTarget] = useState<CTrip | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const liveTrips = active(trips);
   const revenue = liveTrips.reduce((a, t) => a + t.revenue, 0);
   const expense = liveTrips.reduce((a, t) => a + t.expense, 0);
 
   const fields: FieldDef[] = [
-    { name: "tripNo", label: "Trip No", required: true, half: true },
     { name: "date", label: "Date", type: "date", required: true, half: true },
-    { name: "vehicle", label: "Vehicle", type: "select", required: true, half: true,
-      options: active(vehicles).map((v) => ({ label: v.number, value: v.number })) },
-    { name: "driver", label: "Driver", type: "select", required: true, half: true,
-      options: active(drivers).map((d) => ({ label: d.name, value: d.name })) },
+    {
+      name: "vehicle", label: "Vehicle", type: "select", required: true, half: true,
+      options: active(vehicles).map((v) => ({ label: v.number, value: v.number }))
+    },
+    {
+      name: "driver", label: "Driver", type: "select", required: true, half: true,
+      options: active(drivers).map((d) => ({ label: d.name, value: d.name }))
+    },
     { name: "source", label: "Source", required: true, half: true },
     { name: "destination", label: "Destination", required: true, half: true },
     { name: "weight", label: "Weight (MT)", type: "number", required: true, half: true },
     { name: "revenue", label: "Revenue", type: "number", required: true, half: true },
-    { name: "expense", label: "Expense", type: "number", required: true, half: true },
+    { name: "tripExpenses", label: "Expense", type: "number", required: true, half: true },
   ];
 
-  function handleSubmit(v: Record<string, unknown>) {
-    const data = {
-      tripNo: String(v.tripNo), date: String(v.date),
-      vehicle: String(v.vehicle), driver: String(v.driver),
-      source: String(v.source), destination: String(v.destination),
-      weight: Number(v.weight), revenue: Number(v.revenue), expense: Number(v.expense),
-    };
-    if (editing) { update("trips", editing.id, data); toast.success(`Trip ${editing.tripNo} updated`); }
-    else { add("trips", { id: newId("t"), ...data }); toast.success(`Trip ${data.tripNo} created`); }
-    setEditing(null);
+  async function handleSubmit(v: Record<string, unknown>) {
+    setLoading(true);
+    try {
+      const data = {
+        date: String(v.date),
+        vehicle: String(v.vehicle),
+        driver: String(v.driver),
+        source: String(v.source),
+        destination: String(v.destination),
+        weight: Number(v.weight),
+        revenue: Number(v.revenue),
+        tripExpenses: Number(v.tripExpenses),
+      };
+
+      if (editing) {
+        await updateTrip(String(editing.id), data);
+        toast.success(`Trip updated`);
+      } else {
+        await createTrip(data);
+        toast.success(`Trip created`);
+      }
+
+      await loadBackendData();
+      setEditing(null);
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setLoading(false);
+    }
   }
 
   function downloadTrip(t: CTrip) {
@@ -101,7 +122,6 @@ function TripsPage() {
         actions={
           <>
             <Button variant="outline" size="sm" onClick={exportPdf}><Download className="mr-1 h-4 w-4" />Export PDF</Button>
-            <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}><Plus className="mr-1 h-4 w-4" />New trip</Button>
           </>
         } />
       <div className="grid gap-4 px-6 pt-6 md:grid-cols-3">
@@ -153,10 +173,24 @@ function TripsPage() {
       <EntityDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         title="Trip" fields={fields} mode={editing ? "edit" : "create"}
         initial={editing ?? { date: new Date().toISOString().slice(0, 10), tripNo: `TRP-${1000 + trips.length + 1}` }}
-        onSubmit={handleSubmit} />
+        onSubmit={handleSubmit} disabled={loading} />
       <CancelDialog open={!!cancelTarget} onOpenChange={(v) => !v && setCancelTarget(null)}
         title={cancelTarget ? `Cancel ${cancelTarget.tripNo}` : "Cancel"}
-        onConfirm={(remark) => { if (cancelTarget) { cancel("trips", cancelTarget.id, remark); toast.warning(`${cancelTarget.tripNo} cancelled`, { description: remark }); } }} />
+        onConfirm={async (remark) => {
+          if (cancelTarget) {
+            setLoading(true);
+            try {
+              await deleteTrip(String(cancelTarget.id));
+              toast.warning(`${cancelTarget.tripNo} cancelled`, { description: remark });
+              await loadBackendData();
+            } catch (err) {
+              toast.error(String(err));
+            } finally {
+              setLoading(false);
+              setCancelTarget(null);
+            }
+          }
+        }} />
     </div>
   );
 }

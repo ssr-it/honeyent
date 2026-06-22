@@ -48,7 +48,7 @@ function SettingsPage() {
         if (obj.company) { saveCompany(obj.company); setC(obj.company); }
         if (obj.erp) {
           const erp = obj.erp;
-          ["customers","suppliers","products","vehicles","drivers","orders","weighSlips","trips","salesInvoices","purchaseInvoices"].forEach((k) => {
+          ["customers", "suppliers", "products", "vehicles", "drivers", "orders", "weighSlips", "trips", "salesInvoices", "purchaseInvoices"].forEach((k) => {
             const list = erp[k];
             if (Array.isArray(list)) {
               const cur = (useErp.getState() as unknown as Record<string, unknown>)[k] as { id: string }[];
@@ -93,6 +93,7 @@ function SettingsPage() {
             {field("address", "Address", true)}
             {field("phone", "Owner phone (WhatsApp)")}
             {field("email", "Owner email")}
+            {field("financialYear", "Financial year", true)}
             {field("bank", "Bank details", true)}
             {field("upi", "UPI ID")}
           </div>

@@ -17,7 +17,9 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as OperationsRouteImport } from './routes/operations'
 import { Route as LedgerRouteImport } from './routes/ledger'
+import { Route as HsnRouteImport } from './routes/hsn'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as ExecutiveRouteImport } from './routes/executive'
 import { Route as DriversRouteImport } from './routes/drivers'
@@ -72,9 +74,19 @@ const OrdersRoute = OrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OperationsRoute = OperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LedgerRoute = LedgerRouteImport.update({
   id: '/ledger',
   path: '/ledger',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HsnRoute = HsnRouteImport.update({
+  id: '/hsn',
+  path: '/hsn',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExpensesRoute = ExpensesRouteImport.update({
@@ -153,7 +165,9 @@ export interface FileRoutesByFullPath {
   '/drivers': typeof DriversRouteWithChildren
   '/executive': typeof ExecutiveRoute
   '/expenses': typeof ExpensesRoute
+  '/hsn': typeof HsnRoute
   '/ledger': typeof LedgerRoute
+  '/operations': typeof OperationsRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
@@ -177,7 +191,9 @@ export interface FileRoutesByTo {
   '/drivers': typeof DriversRouteWithChildren
   '/executive': typeof ExecutiveRoute
   '/expenses': typeof ExpensesRoute
+  '/hsn': typeof HsnRoute
   '/ledger': typeof LedgerRoute
+  '/operations': typeof OperationsRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
@@ -202,7 +218,9 @@ export interface FileRoutesById {
   '/drivers': typeof DriversRouteWithChildren
   '/executive': typeof ExecutiveRoute
   '/expenses': typeof ExpensesRoute
+  '/hsn': typeof HsnRoute
   '/ledger': typeof LedgerRoute
+  '/operations': typeof OperationsRoute
   '/orders': typeof OrdersRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
@@ -228,7 +246,9 @@ export interface FileRouteTypes {
     | '/drivers'
     | '/executive'
     | '/expenses'
+    | '/hsn'
     | '/ledger'
+    | '/operations'
     | '/orders'
     | '/products'
     | '/reports'
@@ -252,7 +272,9 @@ export interface FileRouteTypes {
     | '/drivers'
     | '/executive'
     | '/expenses'
+    | '/hsn'
     | '/ledger'
+    | '/operations'
     | '/orders'
     | '/products'
     | '/reports'
@@ -276,7 +298,9 @@ export interface FileRouteTypes {
     | '/drivers'
     | '/executive'
     | '/expenses'
+    | '/hsn'
     | '/ledger'
+    | '/operations'
     | '/orders'
     | '/products'
     | '/reports'
@@ -301,7 +325,9 @@ export interface RootRouteChildren {
   DriversRoute: typeof DriversRouteWithChildren
   ExecutiveRoute: typeof ExecutiveRoute
   ExpensesRoute: typeof ExpensesRoute
+  HsnRoute: typeof HsnRoute
   LedgerRoute: typeof LedgerRoute
+  OperationsRoute: typeof OperationsRoute
   OrdersRoute: typeof OrdersRoute
   ProductsRoute: typeof ProductsRoute
   ReportsRoute: typeof ReportsRoute
@@ -370,11 +396,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/operations': {
+      id: '/operations'
+      path: '/operations'
+      fullPath: '/operations'
+      preLoaderRoute: typeof OperationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ledger': {
       id: '/ledger'
       path: '/ledger'
       fullPath: '/ledger'
       preLoaderRoute: typeof LedgerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hsn': {
+      id: '/hsn'
+      path: '/hsn'
+      fullPath: '/hsn'
+      preLoaderRoute: typeof HsnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/expenses': {
@@ -528,7 +568,9 @@ const rootRouteChildren: RootRouteChildren = {
   DriversRoute: DriversRouteWithChildren,
   ExecutiveRoute: ExecutiveRoute,
   ExpensesRoute: ExpensesRoute,
+  HsnRoute: HsnRoute,
   LedgerRoute: LedgerRoute,
+  OperationsRoute: OperationsRoute,
   OrdersRoute: OrdersRoute,
   ProductsRoute: ProductsRoute,
   ReportsRoute: ReportsRoute,
@@ -541,3 +583,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

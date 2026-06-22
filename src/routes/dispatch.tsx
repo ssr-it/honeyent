@@ -56,7 +56,7 @@ function DispatchPage() {
   }
 
   function markPod(o: COrder) {
-    update("orders", o.id, { status: "Delivered" });
+    update("orders", String(o.id), { status: "Delivered" });
     toast.success(`POD captured for ${o.no}`);
   }
 

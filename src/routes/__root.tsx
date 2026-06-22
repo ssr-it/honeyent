@@ -7,10 +7,11 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, Command, Sparkles } from "lucide-react";
+import { Bell, Command, Sparkles, Moon, Sun } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { loadBackendData, useTheme } from "../lib/store";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
@@ -100,8 +101,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const { theme } = useTheme();
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={theme === "dark" ? "dark" : ""}>
       <head>
         <HeadContent />
       </head>
@@ -116,6 +118,18 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const [oneShot, setOneShot] = useState(false);
+  const { theme, toggleTheme, setTheme } = useTheme();
+
+  useEffect(() => {
+    loadBackendData().catch((error) => {
+      console.warn("Unable to load backend ERP data:", error);
+    });
+  }, []);
+
+  useEffect(() => {
+    // Initialize theme on mount
+    setTheme(theme);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -139,6 +153,19 @@ function RootComponent() {
                 </Button>
                 <Button variant="ghost" size="icon" aria-label="Notifications">
                   <Bell className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Toggle theme"
+                  onClick={toggleTheme}
+                  title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+                >
+                  {theme === "dark" ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
                 </Button>
                 <div className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5">
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">

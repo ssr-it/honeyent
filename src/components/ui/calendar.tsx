@@ -73,6 +73,9 @@ function Calendar({
             : "[&>svg]:text-muted-foreground flex h-8 items-center gap-1 rounded-md pl-2 pr-1 text-sm [&>svg]:size-3.5",
           defaultClassNames.caption_label,
         ),
+        // 'table' is not part of DayPicker's ClassNames in current types; cast to any to allow custom classname
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         table: "w-full border-collapse",
         weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(

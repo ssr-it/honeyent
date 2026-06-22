@@ -37,7 +37,7 @@ export function buildAlerts(args: {
 
   // Vehicle compliance
   for (const v of args.vehicles) {
-    const checks: Array<[string, string]> = [
+    const checks: Array<[string, string | undefined]> = [
       ["Insurance", v.insuranceExpiry],
       ["Fitness", v.fitnessExpiry],
       ["Permit", v.permitExpiry],
@@ -106,7 +106,7 @@ export function buildAlerts(args: {
       category: "Operations",
       title: `${pending.length} orders awaiting dispatch`,
       detail: "Allocate vehicle and driver",
-      href: "/dispatch",
+      href: "/operations",
     });
   }
   const podPending = args.orders.filter((o) => o.status === "Delivered");
@@ -117,7 +117,7 @@ export function buildAlerts(args: {
       category: "Operations",
       title: `${podPending.length} deliveries awaiting POD`,
       detail: "Confirm proof of delivery",
-      href: "/dispatch",
+      href: "/operations",
     });
   }
 

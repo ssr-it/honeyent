@@ -1,5 +1,5 @@
-// Company profile + owner contact. Persisted to localStorage so the
-// user can edit it from Settings and have it reflected on every PDF.
+// Company profile + owner contact.
+// This data is not persisted in localStorage.
 
 export interface CompanyProfile {
   name: string;
@@ -10,9 +10,17 @@ export interface CompanyProfile {
   email: string;          // primary email
   bank: string;
   upi: string;
+  financialYear: string;
 }
 
 const KEY = "honey-erp-company";
+
+function defaultFinancialYear(): string {
+  const d = new Date();
+  const y = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+  const next = (y + 1) % 100;
+  return `${String(y % 100).padStart(2, "0")}-${String(next).padStart(2, "0")}`;
+}
 
 export const DEFAULT_COMPANY: CompanyProfile = {
   name: "HONEY ENTERPRISES",
@@ -23,20 +31,13 @@ export const DEFAULT_COMPANY: CompanyProfile = {
   email: "sumit2and2singh@gmail.com",
   bank: "HDFC Bank • A/c 50200012345678 • IFSC HDFC0001234",
   upi: "honey@upi",
+  financialYear: defaultFinancialYear(),
 };
 
 export function loadCompany(): CompanyProfile {
-  if (typeof window === "undefined") return DEFAULT_COMPANY;
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return DEFAULT_COMPANY;
-    return { ...DEFAULT_COMPANY, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_COMPANY;
-  }
+  return DEFAULT_COMPANY;
 }
 
-export function saveCompany(p: CompanyProfile): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, JSON.stringify(p));
+export function saveCompany(_p: CompanyProfile): void {
+  // Local storage persistence removed. Company profile is not saved across reloads.
 }

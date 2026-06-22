@@ -12,7 +12,7 @@ import {
 import {
   LayoutDashboard, ShoppingCart, Truck, Scale, Route as RouteIcon,
   Users, Factory, Package, Bus, IdCard, BarChart3, Settings,
-  Sparkles, Wallet, BookOpen, Layers,
+  Sparkles, Wallet, Layers,
 } from "lucide-react";
 
 interface Props { onCreate: () => void; }
@@ -39,7 +39,7 @@ export function CommandPalette({ onCreate }: Props) {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Type a command — orders, deals, ledger…" />
+      <CommandInput placeholder="Type a command — orders, deals, receipts…" />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
         <CommandGroup heading="Quick actions">
@@ -51,12 +51,7 @@ export function CommandPalette({ onCreate }: Props) {
         <CommandGroup heading="Navigate">
           <CommandItem onSelect={() => go("/")}><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</CommandItem>
           <CommandItem onSelect={() => go("/deals")}><Layers className="mr-2 h-4 w-4" />Deals</CommandItem>
-          <CommandItem onSelect={() => go("/orders")}><ShoppingCart className="mr-2 h-4 w-4" />Orders</CommandItem>
-          <CommandItem onSelect={() => go("/dispatch")}><Truck className="mr-2 h-4 w-4" />Dispatch</CommandItem>
-          <CommandItem onSelect={() => go("/weighbridge")}><Scale className="mr-2 h-4 w-4" />Weighbridge</CommandItem>
-          <CommandItem onSelect={() => go("/trips")}><RouteIcon className="mr-2 h-4 w-4" />Trips</CommandItem>
-          <CommandItem onSelect={() => go("/ledger")}><BookOpen className="mr-2 h-4 w-4" />Ledger 360°</CommandItem>
-          <CommandItem onSelect={() => go("/cashbook")}><Wallet className="mr-2 h-4 w-4" />Cashbook</CommandItem>
+          <CommandItem onSelect={() => go("/operations")}><Layers className="mr-2 h-4 w-4" />Operations</CommandItem>
           <CommandItem onSelect={() => go("/reports")}><BarChart3 className="mr-2 h-4 w-4" />Reports</CommandItem>
         </CommandGroup>
         <CommandSeparator />

@@ -28,7 +28,7 @@ function Executive() {
   const month = today.slice(0, 7);
 
   const todayTrips = trips.filter((t) => t.date === today);
-  const monthTrips = trips.filter((t) => t.date.startsWith(month));
+  const monthTrips = trips.filter((t) => typeof t.date === "string" && t.date.startsWith(month));
   const todayRevenue = todayTrips.reduce((a, t) => a + t.revenue, 0);
   const todayProfit = todayTrips.reduce((a, t) => a + (t.revenue - t.expense), 0);
   const todayCollection = payments.filter((p) => p.date === today && p.direction === "In").reduce((a, p) => a + p.amount, 0);

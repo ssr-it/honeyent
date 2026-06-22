@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Pencil, Ban, Download, Eye } from "lucide-react";
 import { toast } from "sonner";
@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { inr } from "@/lib/mock-data";
-import { useErp, newId, active, type CSupplier } from "@/lib/store";
+import { useErp, active, type CSupplier, loadBackendData } from "@/lib/store";
 import { EntityDialog, CancelDialog, type FieldDef } from "@/components/entity-dialog";
 import { generatePdf } from "@/lib/pdf";
+import { createSupplier, updateSupplier, deleteSupplier } from "@/lib/api/clients";
 
 export const Route = createFileRoute("/suppliers")({
   head: () => ({ meta: [{ title: "Suppliers — Honey Enterprises ERP" }] }),
@@ -19,40 +20,63 @@ export const Route = createFileRoute("/suppliers")({
 });
 
 const fields: FieldDef[] = [
-  { name: "code", label: "Code", required: true, half: true },
   { name: "name", label: "Supplier / Crusher", required: true, half: true },
   { name: "gst", label: "GSTIN", half: true },
   { name: "mobile", label: "Mobile", required: true, half: true },
+  { name: "email", label: "Email", type: "text", half: true },
+  { name: "address", label: "Address", type: "textarea", half: true },
   { name: "city", label: "City", half: true },
+  { name: "state", label: "State", half: true },
+  { name: "bankName", label: "Bank Name", half: true },
+  { name: "bankAccount", label: "Bank Account", half: true },
+  { name: "bankIfsc", label: "Bank IFSC", half: true },
   { name: "outstanding", label: "Opening Payable", type: "number", half: true },
 ];
 
 function SuppliersPage() {
   const suppliers = useErp((s) => s.suppliers);
-  const add = useErp((s) => s.add);
-  const update = useErp((s) => s.update);
-  const cancel = useErp((s) => s.cancel);
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CSupplier | null>(null);
   const [cancelTarget, setCancelTarget] = useState<CSupplier | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const visible = suppliers.filter((s) => !s.cancelled && (!query || s.name.toLowerCase().includes(query.toLowerCase())));
 
-  function handleSubmit(v: Record<string, unknown>) {
-    if (editing) {
-      update("suppliers", editing.id, v as Partial<CSupplier>);
-      toast.success(`${editing.name} updated`);
-    } else {
-      add("suppliers", {
-        id: newId("s"),
-        code: String(v.code), name: String(v.name), gst: String(v.gst || ""),
-        mobile: String(v.mobile), city: String(v.city || ""), outstanding: Number(v.outstanding || 0),
-      });
-      toast.success(`Supplier ${v.name} added`);
+  async function handleSubmit(v: Record<string, unknown>) {
+    setLoading(true);
+    try {
+      const data = {
+        name: String(v.name),
+        gst: String(v.gst || ""),
+        mobile: String(v.mobile),
+        email: String(v.email || ""),
+        address: String(v.address || ""),
+        city: String(v.city || ""),
+        state: String(v.state || ""),
+        bankName: String(v.bankName || ""),
+        bankAccount: String(v.bankAccount || ""),
+        bankIfsc: String(v.bankIfsc || ""),
+        openingBalance: Number(v.outstanding || 0),
+        outstanding: Number(v.outstanding || 0),
+      };
+
+      if (editing) {
+        await updateSupplier(String(editing.id), data);
+        toast.success(`${editing.name} updated`);
+      } else {
+        await createSupplier(data);
+        toast.success(`Supplier ${v.name} added`);
+      }
+
+      await loadBackendData();
+      setEditing(null);
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setLoading(false);
     }
-    setEditing(null);
   }
 
   function exportPdf() {
@@ -103,7 +127,7 @@ function SuppliersPage() {
                   <TableCell>{s.city}</TableCell>
                   <TableCell className={`text-right tabular-nums ${s.outstanding > 0 ? "text-warning" : "text-muted-foreground"}`}>{inr(s.outstanding)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">
-                    <Button variant="ghost" size="sm" asChild><Link to="/suppliers/$id" params={{ id: s.id }}><Eye className="h-3.5 w-3.5" /></Link></Button>
+                    <Button variant="ghost" size="sm" asChild><Link to="/suppliers/$id" params={{ id: String(s.id) }}><Eye className="h-3.5 w-3.5" /></Link></Button>
                     <Button variant="ghost" size="sm" onClick={() => { setEditing(s); setOpen(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => setCancelTarget(s)}><Ban className="h-3.5 w-3.5 text-destructive" /></Button>
                   </TableCell>
@@ -116,10 +140,25 @@ function SuppliersPage() {
 
       <EntityDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         title="Supplier" fields={fields} mode={editing ? "edit" : "create"}
-        initial={editing ?? {}} onSubmit={handleSubmit} />
+        initial={editing ?? {}} onSubmit={handleSubmit} disabled={loading} />
       <CancelDialog open={!!cancelTarget} onOpenChange={(v) => !v && setCancelTarget(null)}
         title={cancelTarget ? `Remove ${cancelTarget.name}` : "Remove"}
-        onConfirm={(remark) => { if (cancelTarget) { cancel("suppliers", cancelTarget.id, remark); toast.warning(`${cancelTarget.name} removed`); } }} />
+        onConfirm={async (remark) => {
+          if (cancelTarget) {
+            setLoading(true);
+            try {
+              await deleteSupplier(String(cancelTarget.id));
+              toast.warning(`${cancelTarget.name} removed`);
+              await loadBackendData();
+            } catch (err) {
+              toast.error(String(err));
+            } finally {
+              setLoading(false);
+              setCancelTarget(null);
+            }
+          }
+        }} />
+      <Outlet />
     </div>
   );
 }

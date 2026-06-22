@@ -1,0 +1,1 @@
+Applying patches to chart.tsx and route files to fix TS type mismatches: - loosen Recharts prop types to any in tooltip and legend components - add explicit any types to map/filter callbacks - cast numeric ids to String(...) in API calls and Link params - default possibly undefined fields in PDF bodies to '' or 0

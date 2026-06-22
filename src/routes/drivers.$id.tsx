@@ -1,12 +1,19 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { useState } from "react";
 import { ArrowLeft, IdCard, Star, IndianRupee, Route as RouteIcon, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { newId, useErp, EXPENSE_CATEGORIES, active } from "@/lib/store";
+import { nextNo } from "@/lib/numbering";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { inr, daysUntil } from "@/lib/mock-data";
-import { useErp, active } from "@/lib/store";
+// useErp and active imported above
 import { driverProfile } from "@/lib/insights";
 
 export const Route = createFileRoute("/drivers/$id")({
@@ -16,28 +23,67 @@ export const Route = createFileRoute("/drivers/$id")({
 
 function Driver360() {
   const { id } = useParams({ from: "/drivers/$id" });
-  const driver = useErp((s) => s.drivers.find((x) => x.id === id));
+  const driver = useErp((s) =>
+  s.drivers.find(
+    (x) => String(x.id) === String(id)
+  )
+);
+
   const trips = active(useErp((s) => s.trips));
   const expenses = useErp((s) => s.expenses);
   const orders = active(useErp((s) => s.orders));
 
+  const [payOpen, setPayOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState(0);
+  const [payCategory, setPayCategory] =
+    useState<typeof EXPENSE_CATEGORIES[number]>(
+      EXPENSE_CATEGORIES[0]
+    );
+  const [payMode, setPayMode] =
+    useState<"Cash" | "Bank" | "UPI" | "Cheque">("Cash");
+  const [payNote, setPayNote] = useState("");
+
   if (!driver) {
     return (
       <div className="p-10">
-        <Button variant="ghost" asChild><Link to="/drivers"><ArrowLeft className="mr-1 h-4 w-4" />Back</Link></Button>
-        <p className="mt-4 text-sm text-muted-foreground">Driver not found.</p>
+        <Button variant="ghost" asChild>
+          <Link to="/drivers">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back
+          </Link>
+        </Button>
+
+        <p className="mt-4 text-sm text-muted-foreground">
+          Driver not found.
+        </p>
+
+        <p className="mt-2 text-xs text-muted-foreground">
+          Driver ID: {id}
+        </p>
       </div>
     );
   }
-  const p = driverProfile(driver, { trips, expenses, orders });
-  const licDays = daysUntil(driver.licenseExpiry);
 
+  const p = driverProfile(driver, {
+    trips,
+    expenses,
+    orders,
+  });
+
+  const licDays = driver.licenseExpiry
+    ? daysUntil(driver.licenseExpiry)
+    : 0;
+
+  // keep all remaining code exactly as it is
   return (
     <div>
       <PageHeader
         title={driver.name}
         description={`${driver.mobile} • License ${driver.license} • Driver 360°`}
-        actions={<Button variant="outline" size="sm" asChild><Link to="/drivers"><ArrowLeft className="mr-1 h-4 w-4" />All drivers</Link></Button>}
+        actions={<>
+          <Button size="sm" onClick={() => setPayOpen(true)}>Pay</Button>
+          <Button variant="outline" size="sm" asChild><Link to="/drivers"><ArrowLeft className="mr-1 h-4 w-4" />All drivers</Link></Button>
+        </>}
       />
 
       <div className="grid gap-4 px-6 pt-6 md:grid-cols-2 lg:grid-cols-4">
@@ -106,10 +152,43 @@ function Driver360() {
           )}
         </div>
       </div>
+      <Dialog open={payOpen} onOpenChange={(v) => !v && setPayOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pay driver</DialogTitle>
+            <DialogDescription>{driver.name}</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5"><Label className="text-xs">Date</Label><Input type="date" value={new Date().toISOString().slice(0, 10)} readOnly /></div>
+            <div className="grid gap-1.5"><Label className="text-xs">Amount</Label><Input type="number" value={payAmount || ""} onChange={(e) => setPayAmount(Number(e.target.value))} /></div>
+            <div className="grid gap-1.5"><Label className="text-xs">Category</Label>
+              <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={payCategory} onChange={(e) => setPayCategory(e.target.value as any)}>
+                {EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-1.5"><Label className="text-xs">Mode</Label>
+              <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={payMode} onChange={(e) => setPayMode(e.target.value as any)}>
+                <option>Cash</option><option>Bank</option><option>UPI</option><option>Cheque</option>
+              </select>
+            </div>
+            <div className="grid gap-1.5 col-span-2"><Label className="text-xs">Note</Label><Input value={payNote} onChange={(e) => setPayNote(e.target.value)} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              if (payAmount <= 0) return toast.error("Enter amount");
+              const no = nextNo("EXP" as never) || `EXP/${Date.now().toString().slice(-6)}`;
+              useErp.getState().add("expenses", { id: newId("exp"), no, date: new Date().toISOString().slice(0, 10), category: payCategory, driver: driver.name, paidTo: driver.name, mode: payMode, amount: payAmount, remark: payNote });
+              toast.success("Payment recorded");
+              setPayOpen(false); setPayAmount(0); setPayNote("");
+            }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function KV({ k, v }: { k: string; v: string }) {
-  return <div className="flex items-center justify-between border-b border-border/60 py-1.5"><span className="text-xs text-muted-foreground">{k}</span><span className="text-sm font-medium">{v}</span></div>;
+function KV({ k, v }: { k: string; v?: string }) {
+  return <div className="flex items-center justify-between border-b border-border/60 py-1.5"><span className="text-xs text-muted-foreground">{k}</span><span className="text-sm font-medium">{String(v ?? "—")}</span></div>;
 }

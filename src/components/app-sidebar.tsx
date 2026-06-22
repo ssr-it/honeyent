@@ -10,11 +10,11 @@ import {
   Package,
   Bus,
   IdCard,
+  BookOpen,
   BarChart3,
   Mountain,
   Settings,
   Layers,
-  BookOpen,
   Wallet,
   Receipt,
   RadioTower,
@@ -38,18 +38,12 @@ const sections = [
     label: "Overview",
     items: [
       { title: "Dashboard", url: "/", icon: LayoutDashboard },
-      { title: "Control Tower", url: "/control-tower", icon: RadioTower },
-      { title: "Executive", url: "/executive", icon: Crown },
-      { title: "Deals", url: "/deals", icon: Layers },
     ],
   },
   {
     label: "Operations",
     items: [
-      { title: "Orders", url: "/orders", icon: ShoppingCart },
-      { title: "Dispatch", url: "/dispatch", icon: Truck },
-      { title: "Weighbridge", url: "/weighbridge", icon: Scale },
-      { title: "Trips", url: "/trips", icon: RouteIcon },
+      { title: "Operations Register", url: "/operations", icon: Layers },
     ],
   },
   {
@@ -60,14 +54,12 @@ const sections = [
       { title: "Products", url: "/products", icon: Package },
       { title: "Vehicles", url: "/vehicles", icon: Bus },
       { title: "Drivers", url: "/drivers", icon: IdCard },
+      { title: "HSN Codes", url: "/hsn", icon: BookOpen }
     ],
   },
   {
     label: "Finance",
     items: [
-      { title: "Ledger 360°", url: "/ledger", icon: BookOpen },
-      { title: "Cashbook", url: "/cashbook", icon: Wallet },
-      { title: "Expenses", url: "/expenses", icon: Receipt },
       { title: "Reports", url: "/reports", icon: BarChart3 },
     ],
   },
@@ -81,7 +73,10 @@ const sections = [
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
+  const isActive = (url: string) => {
+    if (url === "/") return pathname === "/";
+    return typeof pathname === "string" && pathname.startsWith(url);
+  };
 
   return (
     <Sidebar collapsible="icon">

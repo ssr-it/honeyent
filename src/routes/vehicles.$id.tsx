@@ -1,12 +1,19 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { useState } from "react";
 import { ArrowLeft, Truck, Fuel, Wrench, ShieldCheck, IndianRupee, TrendingUp, Route as RouteIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { newId, useErp, EXPENSE_CATEGORIES, active } from "@/lib/store";
+import { nextNo } from "@/lib/numbering";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { inr, daysUntil } from "@/lib/mock-data";
-import { useErp, active } from "@/lib/store";
+// useErp and active imported above
 import { vehicleProfile } from "@/lib/insights";
 
 export const Route = createFileRoute("/vehicles/$id")({
@@ -14,27 +21,58 @@ export const Route = createFileRoute("/vehicles/$id")({
   component: Vehicle360,
 });
 
-function expiryBadge(date: string) {
+function expiryBadge(date?: string) {
+  if (!date) return <Badge variant="outline">—</Badge>;
   const d = daysUntil(date);
   const tone = d <= 0 ? "bg-destructive/15 text-destructive" : d <= 30 ? "bg-warning/15 text-warning" : "bg-success/15 text-success";
   return <Badge variant="outline" className={tone}>{d <= 0 ? "Expired" : `${d}d left`}</Badge>;
 }
 
 function Vehicle360() {
-  const { id } = useParams({ from: "/vehicles/$id" });
-  const v = useErp((s) => s.vehicles.find((x) => x.id === id));
-  const trips = active(useErp((s) => s.trips));
-  const expenses = useErp((s) => s.expenses);
+ const { id } = useParams({ from: "/vehicles/$id" });
 
-  if (!v) {
-    return (
-      <div className="p-10">
-        <Button variant="ghost" asChild><Link to="/vehicles"><ArrowLeft className="mr-1 h-4 w-4" />Back</Link></Button>
-        <p className="mt-4 text-sm text-muted-foreground">Vehicle not found.</p>
-      </div>
-    );
-  }
-  const p = vehicleProfile(v, { trips, expenses });
+const v = useErp((s) =>
+  s.vehicles.find((x) => String(x.id) === String(id))
+);
+
+const trips = active(useErp((s) => s.trips));
+const expenses = useErp((s) => s.expenses);
+
+const [expOpen, setExpOpen] = useState(false);
+const [expAmount, setExpAmount] = useState(0);
+
+const [expCategory, setExpCategory] =
+  useState<typeof EXPENSE_CATEGORIES[number]>(
+    EXPENSE_CATEGORIES[0]
+  );
+
+const [expMode, setExpMode] =
+  useState<"Cash" | "Bank" | "UPI" | "Cheque">("Cash");
+
+const [expNote, setExpNote] = useState("");
+
+if (!v) {
+  return (
+    <div className="p-10">
+      <Button variant="ghost" asChild>
+        <Link to="/vehicles">
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          Back
+        </Link>
+      </Button>
+
+      <p className="mt-4 text-sm text-muted-foreground">
+        Vehicle not found.
+      </p>
+
+      <p className="mt-2 text-xs text-muted-foreground">
+        Route ID: {id}
+      </p>
+    </div>
+  );
+}
+
+const p = vehicleProfile(v, { trips, expenses });
 
   return (
     <div>
@@ -49,6 +87,12 @@ function Vehicle360() {
         <StatCard label="Profit" value={inr(p.profit)} hint={`Margin ${p.revenue ? Math.round((p.profit / p.revenue) * 100) : 0}%`} icon={TrendingUp} tone={p.profit >= 0 ? "primary" : "destructive"} />
         <StatCard label="Tons moved" value={`${p.tonsMoved} MT`} hint={`Cost/ton ${inr(p.costPerTon)}`} icon={RouteIcon} tone="info" />
         <StatCard label="Total op-ex" value={inr(p.tripExp + p.extras)} hint={`Fuel ${inr(p.fuel)}`} icon={Truck} tone="warning" />
+      </div>
+
+      <div className="px-6 pb-6">
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => setExpOpen(true)}><Truck className="mr-1 h-4 w-4" />Add expense</Button>
+        </div>
       </div>
 
       <div className="grid gap-4 px-6 py-6 lg:grid-cols-3">
@@ -115,6 +159,41 @@ function Vehicle360() {
           </Table>
         </Panel>
       </div>
+      <Dialog open={expOpen} onOpenChange={(v) => !v && setExpOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add expense</DialogTitle>
+            <DialogDescription>{v.number}</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5"><Label className="text-xs">Date</Label><Input type="date" value={new Date().toISOString().slice(0, 10)} readOnly /></div>
+            <div className="grid gap-1.5"><Label className="text-xs">Amount</Label><Input type="number" value={expAmount || ""} onChange={(e) => setExpAmount(Number(e.target.value))} /></div>
+            <div className="grid gap-1.5"><Label className="text-xs">Category</Label>
+              <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={expCategory} onChange={(e) => setExpCategory(e.target.value as any)}>
+                {EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-1.5"><Label className="text-xs">Mode</Label>
+              <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={expMode} onChange={(e) => setExpMode(e.target.value as any)}>
+                <option>Cash</option><option>Bank</option><option>UPI</option><option>Cheque</option>
+              </select>
+            </div>
+            <div className="grid gap-1.5 col-span-2"><Label className="text-xs">Note</Label><Input value={expNote} onChange={(e) => setExpNote(e.target.value)} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExpOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              if (expAmount <= 0) return toast.error("Enter amount");
+              const no = nextNo("EXP" as never) || `EXP/${Date.now().toString().slice(-6)}`;
+              useErp.getState().add("expenses", {
+                id: newId("exp"), no, date: new Date().toISOString().slice(0, 10), category: expCategory, vehicle: v.number, paidTo: v.number, mode: expMode, amount: expAmount, remark: expNote,
+              });
+              toast.success("Expense recorded");
+              setExpOpen(false); setExpAmount(0); setExpNote("");
+            }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

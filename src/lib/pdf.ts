@@ -20,6 +20,13 @@ export function generatePdf(opts: PdfOptions): void {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
 
+  // Sanitize body values: strip ₹ symbol for better PDF encoding
+  const sanitizedBody = opts.body.map(row =>
+    row.map(cell =>
+      typeof cell === 'string' ? cell.replace('₹', '').trim() : cell
+    )
+  );
+
   // Header band
   doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, pageW, 70, "F");
@@ -48,7 +55,7 @@ export function generatePdf(opts: PdfOptions): void {
   autoTable(doc, {
     startY: opts.subtitle ? 130 : 115,
     head: [opts.head],
-    body: opts.body,
+    body: sanitizedBody,
     theme: "striped",
     headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 9 },
     bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59] },
@@ -64,7 +71,10 @@ export function generatePdf(opts: PdfOptions): void {
     doc.setTextColor(15, 23, 42);
     opts.totals.forEach((t, i) => {
       doc.text(`${t.label}:`, pageW - 220, y + i * 16);
-      doc.text(t.value, pageW - 40, y + i * 16, { align: "right" });
+      // Strip ₹ symbol if present and render number with symbol separately for better encoding
+      const cleanValue = t.value.replace('₹', '').trim();
+      const displayValue = cleanValue.startsWith('₹') ? cleanValue : `₹${cleanValue}`;
+      doc.text(displayValue, pageW - 40, y + i * 16, { align: "right" });
     });
   }
 
@@ -140,15 +150,24 @@ export function generateDocPdf(opts: InvoicePdfOptions): void {
     doc.setFont("helvetica", "bold");
     doc.text(`${r.label}:`, 40, y);
     doc.setFont("helvetica", "normal");
-    doc.text(String(r.value), 160, y);
+    // Strip ₹ symbol for better encoding, then add back if it's a currency value
+    const cleanValue = String(r.value).replace('₹', '').trim();
+    const displayValue = /^\d+[\d,]*$/.test(cleanValue) ? `₹${cleanValue}` : cleanValue;
+    doc.text(displayValue, 160, y);
     y += 14;
   });
 
   if (opts.lines) {
+    // Sanitize body values: strip ₹ symbol for better PDF encoding
+    const sanitizedLines = opts.lines.body.map(row =>
+      row.map(cell =>
+        typeof cell === 'string' ? cell.replace('₹', '').trim() : cell
+      )
+    );
     autoTable(doc, {
       startY: y + 8,
       head: [opts.lines.head],
-      body: opts.lines.body,
+      body: sanitizedLines,
       theme: "grid",
       headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 9 },
       bodyStyles: { fontSize: 9 },
@@ -163,7 +182,10 @@ export function generateDocPdf(opts: InvoicePdfOptions): void {
     doc.setFontSize(10);
     opts.totals.forEach((t, i) => {
       doc.text(`${t.label}`, pageW - 220, y + i * 16);
-      doc.text(t.value, pageW - 40, y + i * 16, { align: "right" });
+      // Strip ₹ symbol and render number with symbol separately for better encoding
+      const cleanValue = t.value.replace('₹', '').trim();
+      const displayValue = cleanValue.startsWith('₹') ? cleanValue : `₹${cleanValue}`;
+      doc.text(displayValue, pageW - 40, y + i * 16, { align: "right" });
     });
     y += opts.totals.length * 16 + 8;
   }

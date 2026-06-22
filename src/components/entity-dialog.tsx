@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useErp } from "@/lib/store";
 import {
   Dialog,
   DialogContent,
@@ -32,8 +33,9 @@ interface Props<T extends Record<string, unknown>> {
   fields: FieldDef[];
   initial?: unknown;
   mode: "create" | "edit";
-  onSubmit: (values: T) => void;
+  onSubmit: (values: T) => void | Promise<void>;
   computed?: (values: T) => ReactNode;
+  disabled?: boolean;
 }
 
 export function EntityDialog<T extends Record<string, unknown>>({
@@ -46,33 +48,54 @@ export function EntityDialog<T extends Record<string, unknown>>({
   mode,
   onSubmit,
   computed,
+  disabled = false,
 }: Props<T>) {
   const [values, setValues] = useState<Record<string, unknown>>({});
+  const prevOpenRef = useRef(open);
 
   useEffect(() => {
-    if (open) {
+    if (open && !prevOpenRef.current) {
       const base: Record<string, unknown> = {};
       const src = (initial ?? {}) as Record<string, unknown>;
       fields.forEach((f) => {
         const seed = src[f.name];
-        base[f.name] = seed ?? (f.type === "number" ? 0 : "");
+        base[f.name] = seed ?? "";
       });
       setValues(base);
     }
+    prevOpenRef.current = open;
   }, [open, initial, fields]);
+
+  // Auto-fill GST when HSN selected (if dialog has gst field)
+  const hsnCodes = useErp((s) => s.hsnCodes);
+  useEffect(() => {
+    const selected = String(values["hsn"] ?? "");
+    if (!selected) return;
+    const gstField = fields.find((f) => f.name === "gst");
+    if (!gstField) return;
+    const match = hsnCodes.find((h) => h.code === selected);
+    if (match && (values["gst"] === "" || values["gst"] === undefined || values["gst"] === null)) {
+      setValues((s) => ({ ...s, gst: String(match.gstRate) }));
+    }
+  }, [values["hsn"]]);
 
   function set(name: string, v: unknown) {
     setValues((s) => ({ ...s, [name]: v }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     for (const f of fields) {
       if (f.required && !values[f.name] && values[f.name] !== 0) {
         return;
       }
     }
-    onSubmit(values as T);
-    onOpenChange(false);
+    try {
+      await Promise.resolve(onSubmit(values as T));
+      onOpenChange(false);
+    } catch {
+      // Error was already handled by the onSubmit caller (toast shown)
+      // Dialog stays open so user can fix and retry
+    }
   }
 
   return (
@@ -98,6 +121,7 @@ export function EntityDialog<T extends Record<string, unknown>>({
                   id={f.name}
                   className="h-9 rounded-md border border-input bg-background px-2 text-sm"
                   value={String(values[f.name] ?? "")}
+                  disabled={disabled}
                   onChange={(e) => set(f.name, e.target.value)}
                 >
                   <option value="">Select…</option>
@@ -112,6 +136,7 @@ export function EntityDialog<T extends Record<string, unknown>>({
                   id={f.name}
                   value={String(values[f.name] ?? "")}
                   placeholder={f.placeholder}
+                  disabled={disabled}
                   onChange={(e) => set(f.name, e.target.value)}
                 />
               ) : (
@@ -120,12 +145,8 @@ export function EntityDialog<T extends Record<string, unknown>>({
                   type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
                   value={String(values[f.name] ?? "")}
                   placeholder={f.placeholder}
-                  onChange={(e) =>
-                    set(
-                      f.name,
-                      f.type === "number" ? Number(e.target.value) : e.target.value,
-                    )
-                  }
+                  disabled={disabled}
+                  onChange={(e) => set(f.name, e.target.value)}
                   className="bg-background"
                 />
               )}
@@ -139,7 +160,7 @@ export function EntityDialog<T extends Record<string, unknown>>({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button onClick={handleSave}>{mode === "create" ? "Save" : "Update"}</Button>
+          <Button disabled={disabled} onClick={handleSave}>{mode === "create" ? "Save" : "Update"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

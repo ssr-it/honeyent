@@ -13,9 +13,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 
-import { useErp, newId, active } from "@/lib/store";
-import { nextNo } from "@/lib/numbering";
+import { useErp, active, loadBackendData } from "@/lib/store";
 import { inr } from "@/lib/mock-data";
+import {
+  createOrder,
+  createWeighSlip,
+  createTrip,
+  createDeliveryChallan,
+  createSalesInvoice,
+  createPurchaseInvoice,
+  createDeal,
+  updateDeal,
+} from "@/lib/api/clients";
 
 interface Props {
   open: boolean;
@@ -28,7 +37,6 @@ export function OneShotOrderDialog({ open, onOpenChange }: Props) {
   const products = active(useErp((s) => s.products));
   const vehicles = active(useErp((s) => s.vehicles));
   const drivers = active(useErp((s) => s.drivers));
-  const add = useErp((s) => s.add);
 
   const [f, setF] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -38,14 +46,15 @@ export function OneShotOrderDialog({ open, onOpenChange }: Props) {
     product: "",
     vehicle: "",
     driver: "",
-    qty: 0,
-    rate: 0,
-    freight: 0,
+    qty: "",
+    rate: "",
+    freight: "",
     source: "",
     destination: "",
     paymentTerms: "Net 15 days",
     remark: "",
   });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -58,103 +67,155 @@ export function OneShotOrderDialog({ open, onOpenChange }: Props) {
 
   // auto-fill rate when product picked
   useEffect(() => {
-    if (product && f.rate === 0) setF((s) => ({ ...s, rate: product.rate }));
-  }, [product]); // eslint-disable-line
+    if (product && f.rate === "") {
+      setF((s) => ({ ...s, rate: String(product.rate) }));
+    }
+  }, [product, f.rate]);
 
+  useEffect(() => {
+    if (f.supplier && !f.source) {
+      setF((s) => ({ ...s, source: f.supplier }));
+    }
+  }, [f.supplier, f.source]);
+
+  const qtyNumber = Number(f.qty) || 0;
+  const rateNumber = Number(f.rate) || 0;
+  const freightNumber = Number(f.freight) || 0;
   const gstPct = product?.gst ?? 5;
-  const subtotal = f.qty * f.rate;
+  const subtotal = qtyNumber * rateNumber;
   const gstAmt = Math.round(subtotal * (gstPct / 100));
-  const grand = subtotal + gstAmt + Number(f.freight || 0);
+  const grand = subtotal + gstAmt + freightNumber;
 
   function set<K extends keyof typeof f>(k: K, v: (typeof f)[K]) {
     setF((s) => ({ ...s, [k]: v }));
   }
 
-  function save() {
+  async function save() {
     if (!f.customer || !f.product || !f.vehicle || !f.qty || !f.rate) {
       toast.error("Please fill customer, product, vehicle, qty and rate");
       return;
     }
-    const dealId = newId("deal");
-    const orderNo = nextNo("ORD");
-    const slipNo = nextNo("WB");
-    const tripNo = nextNo("TR");
-    const invNo = nextNo("INV");
 
-    add("orders", {
-      id: newId("o"),
-      no: orderNo,
-      date: f.date,
-      customer: f.customer,
-      product: f.product,
-      qty: f.qty,
-      rate: f.rate,
-      vehicle: f.vehicle,
-      driver: f.driver || "—",
-      status: "Approved",
-    });
+    setSaving(true);
+    try {
+      const destination = f.destination || f.shipTo || customer?.city || "Customer Site";
+      const netKg = Math.round(qtyNumber * 1000);
 
-    // Weigh slip (kg). Approximate gross from qty (MT*1000) + 13t tare guess.
-    const netKg = Math.round(f.qty * 1000);
-    add("weighSlips", {
-      id: newId("w"),
-      slipNo,
-      date: f.date,
-      vehicle: f.vehicle,
-      product: f.product,
-      gross: netKg + 13000,
-      tare: 13000,
-      net: netKg,
-    });
-
-    add("trips", {
-      id: newId("t"),
-      tripNo,
-      date: f.date,
-      vehicle: f.vehicle,
-      driver: f.driver || "—",
-      source: f.source || "Yard",
-      destination: f.destination || f.shipTo || (customer?.city ?? "Customer Site"),
-      weight: f.qty,
-      revenue: subtotal + Number(f.freight || 0),
-      expense: Number(f.freight || 0),
-    });
-
-    add("salesInvoices", {
-      id: newId("si"),
-      no: invNo,
-      date: f.date,
-      party: f.customer,
-      amount: grand,
-      gst: gstAmt,
-      status: "Unpaid",
-    });
-
-    if (f.supplier) {
-      const purNo = nextNo("PUR");
-      const purAmt = Math.round(subtotal * 0.7); // assumed cost
-      add("purchaseInvoices", {
-        id: newId("pi"),
-        no: purNo,
-        date: f.date,
-        party: f.supplier,
-        amount: purAmt + Math.round(purAmt * 0.05),
-        gst: Math.round(purAmt * 0.05),
-        status: "Unpaid",
+      const deal = await createDeal({
+        dealDate: f.date,
+        customer: f.customer,
+        supplier: f.supplier || undefined,
+        status: "Draft",
       });
-    }
 
-    toast.success("Deal created", {
-      description: `Order ${orderNo}, Weigh ${slipNo}, Trip ${tripNo}, Invoice ${invNo}`,
-    });
-    onOpenChange(false);
-    setF({
-      date: new Date().toISOString().slice(0, 10),
-      customer: "", shipTo: "", supplier: "", product: "",
-      vehicle: "", driver: "", qty: 0, rate: 0, freight: 0,
-      source: "", destination: "", paymentTerms: "Net 15 days", remark: "",
-    });
-    void dealId;
+      const order = await createOrder({
+        date: f.date,
+        customer: f.customer,
+        supplier: f.supplier || undefined,
+        shipTo: f.shipTo || undefined,
+        product: f.product,
+        qty: qtyNumber,
+        rate: rateNumber,
+        freight: freightNumber || 0,
+        vehicle: f.vehicle,
+        driver: f.driver || "—",
+        source: f.source || undefined,
+        destination,
+        paymentTerms: f.paymentTerms,
+        remarks: f.remark || undefined,
+        status: "Approved",
+        dealId: deal.id,
+      });
+
+      const slip = await createWeighSlip({
+        slipDate: f.date,
+        vehicle: f.vehicle,
+        product: f.product,
+        grossWeight: netKg + 13000,
+        tareWeight: 13000,
+        netWeight: netKg,
+        customerWeight: undefined,
+        lossWeight: undefined,
+        dealId: deal.id,
+      });
+
+      const trip = await createTrip({
+        date: f.date,
+        vehicle: f.vehicle,
+        driver: f.driver || "—",
+        source: f.source || "Yard",
+        destination,
+        weight: qtyNumber,
+        revenue: subtotal + freightNumber,
+        tripExpenses: freightNumber,
+        dealId: deal.id,
+      });
+
+      const challan = await createDeliveryChallan({
+        challanDate: f.date,
+        orderId: order.id,
+        dealId: deal.id,
+        customer: f.customer,
+        product: f.product,
+        qty: qtyNumber,
+        hsnCode: product?.hsn,
+        gstRate: gstPct,
+        amount: subtotal + freightNumber,
+        status: "Pending",
+      });
+
+      const salesInvoice = await createSalesInvoice({
+        invoiceDate: f.date,
+        customer: f.customer,
+        orderId: order.id,
+        subTotal: subtotal,
+        cgstAmount: gstAmt / 2,
+        sgstAmount: gstAmt / 2,
+        igstAmount: 0,
+        totalAmount: grand,
+        dealId: deal.id,
+      });
+
+      let purchaseInvoice;
+      if (f.supplier) {
+        purchaseInvoice = await createPurchaseInvoice({
+          invoiceDate: f.date,
+          supplier: f.supplier,
+          orderId: order.id,
+          subTotal: Math.round(subtotal * 0.7),
+          gstAmount: Math.round(subtotal * 0.7 * 0.05),
+          totalAmount: Math.round(subtotal * 0.7 * 1.05),
+          dealId: deal.id,
+        });
+      }
+
+      await updateDeal(deal.id, {
+        orderId: order.id,
+        challanId: challan.id,
+        weighSlipId: slip.id,
+        tripId: trip.id,
+        salesInvoiceId: salesInvoice.id,
+        purchaseInvoiceId: purchaseInvoice?.id,
+        totalValue: grand,
+        status: "In Progress",
+      });
+
+      await loadBackendData();
+      toast.success("Deal created", {
+        description: `Order ${order.no}, Challan ${challan.challanNo}, Weigh ${slip.slipNo}, Trip ${trip.tripNo}, Invoice ${salesInvoice.no}`,
+      });
+      onOpenChange(false);
+      setF({
+        date: new Date().toISOString().slice(0, 10),
+        customer: "", shipTo: "", supplier: "", product: "",
+        vehicle: "", driver: "", qty: "", rate: "", freight: "",
+        source: "", destination: "", paymentTerms: "Net 15 days", remark: "",
+      });
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setSaving(false);
+    }
   }
 
   function S({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
@@ -194,16 +255,16 @@ export function OneShotOrderDialog({ open, onOpenChange }: Props) {
           <S label="Customer *"><Sel value={f.customer} onChange={(v) => set("customer", v)} options={customers.map((c) => c.name)} placeholder="Select customer" /></S>
           <S label="Ship to (optional)"><Input value={f.shipTo} onChange={(e) => set("shipTo", e.target.value)} placeholder={customer?.city || "Site address"} /></S>
 
-          <S label="Supplier (optional)"><Sel value={f.supplier} onChange={(v) => set("supplier", v)} options={suppliers.map((s) => s.name)} placeholder="—" /></S>
+          <S label="Supplier / Source (optional)"><Sel value={f.supplier} onChange={(v) => set("supplier", v)} options={suppliers.map((s) => s.name)} placeholder="Select supplier / source" /></S>
           <S label="Product *"><Sel value={f.product} onChange={(v) => set("product", v)} options={products.map((p) => p.name)} placeholder="Select product" /></S>
 
           <S label="Vehicle *"><Sel value={f.vehicle} onChange={(v) => set("vehicle", v)} options={vehicles.map((v) => v.number)} placeholder="Select vehicle" /></S>
-          <S label="Driver"><Sel value={f.driver} onChange={(v) => set("driver", v)} options={drivers.map((d) => d.name)} placeholder="—" /></S>
+          <S label="Driver"><Sel value={f.driver} onChange={(v) => set("driver", v)} options={drivers.map((d) => d.name)} placeholder="Select driver" /></S>
 
-          <S label="Qty (MT) *"><Input type="number" value={f.qty || ""} onChange={(e) => set("qty", Number(e.target.value))} /></S>
-          <S label="Rate / MT *"><Input type="number" value={f.rate || ""} onChange={(e) => set("rate", Number(e.target.value))} /></S>
+          <S label="Qty (MT) *"><Input type="number" value={f.qty} onChange={(e) => set("qty", e.target.value)} /></S>
+          <S label="Rate / MT *"><Input type="number" value={f.rate} onChange={(e) => set("rate", e.target.value)} /></S>
 
-          <S label="Freight"><Input type="number" value={f.freight || ""} onChange={(e) => set("freight", Number(e.target.value))} /></S>
+          <S label="Freight"><Input type="number" value={f.freight} onChange={(e) => set("freight", e.target.value)} /></S>
           <S label="HSN / GST">
             <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-muted/30 px-2 text-xs">
               <Badge variant="outline">{product?.hsn ?? "—"}</Badge>
@@ -211,7 +272,7 @@ export function OneShotOrderDialog({ open, onOpenChange }: Props) {
             </div>
           </S>
 
-          <S label="Source / Yard"><Input value={f.source} onChange={(e) => set("source", e.target.value)} placeholder="Yard / Crusher" /></S>
+          <S label="Source / Yard / Supplier"><Input value={f.source} onChange={(e) => set("source", e.target.value)} placeholder="Supplier / Yard / Source" /></S>
           <S label="Destination"><Input value={f.destination} onChange={(e) => set("destination", e.target.value)} placeholder={customer?.city || "Site"} /></S>
 
           <S label="Remark" full><Textarea rows={2} value={f.remark} onChange={(e) => set("remark", e.target.value)} placeholder="Any internal note…" /></S>
@@ -233,8 +294,10 @@ export function OneShotOrderDialog({ open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save}><Sparkles className="mr-1 h-4 w-4" />Create deal</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>
+            {saving ? "Creating…" : <><Sparkles className="mr-1 h-4 w-4" />Create deal</>}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
