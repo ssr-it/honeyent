@@ -1535,3 +1535,53 @@ export const tripQueries = {
         return { success: true };
     },
 };
+
+export const hsnQueries = {
+    async getAll() {
+        const result = await query('SELECT * FROM hsn_catalog ORDER BY hsn_code ASC');
+        return camelizeRows(result.rows);
+    },
+
+    async getById(id: string) {
+        const result = await query('SELECT * FROM hsn_catalog WHERE id = $1', [id]);
+        if (result.rows.length === 0) {
+            throw new ApiError(404, 'HSN code not found');
+        }
+        return camelizeRow(result.rows[0]);
+    },
+
+    async create(data: any) {
+        const result = await query(
+            `INSERT INTO hsn_catalog (hsn_code, description, gst_rate)
+             VALUES ($1, $2, $3)
+             RETURNING *`,
+            [data.code, data.description || null, data.gstRate || 0]
+        );
+        return camelizeRow(result.rows[0]);
+    },
+
+    async update(id: string, data: any) {
+        const existing = await this.getById(id);
+        const result = await query(
+            `UPDATE hsn_catalog SET
+                hsn_code = $1,
+                description = $2,
+                gst_rate = $3
+             WHERE id = $4
+             RETURNING *`,
+            [
+                data.code || existing.hsnCode,
+                data.description !== undefined ? data.description : existing.description,
+                data.gstRate !== undefined ? data.gstRate : existing.gstRate,
+                id,
+            ]
+        );
+        return camelizeRow(result.rows[0]);
+    },
+
+    async delete(id: string) {
+        await this.getById(id);
+        await query('DELETE FROM hsn_catalog WHERE id = $1', [id]);
+        return { success: true };
+    },
+};
