@@ -8,8 +8,6 @@ RUN npm ci
 
 COPY . .
 
-RUN chmod +x node_modules/.bin/*
-
 RUN npm run build
 
 FROM node:20-alpine
