@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/index.ts';
 import { ApiError } from './errorHandler.ts';
 
@@ -31,10 +31,16 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-export const generateToken = (userId: string, username: string, role: string = 'admin'): string => {
+export const generateToken = (
+  userId: string,
+  username: string,
+  role: string = 'admin'
+): string => {
   return jwt.sign(
     { id: userId, username, role },
     config.jwt.secret || 'default_secret',
-    { expiresIn: config.jwt.expire }
+    {
+      expiresIn: config.jwt.expire as SignOptions["expiresIn"],
+    }
   );
 };
